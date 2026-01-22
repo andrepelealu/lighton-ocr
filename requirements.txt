@@ -1,8 +1,10 @@
 torch
 torchvision
 torchaudio
-transformers==4.46.0
 pypdfium2
 pillow
 fastapi
 uvicorn
+accelerate
+sentencepiece
+git+https://github.com/huggingface/transformers
