@@ -45,11 +45,12 @@ def ocr_image(image: Image.Image) -> str:
         return_tensors="pt"
     )
 
-    # 🔥 CRITICAL FIX: match model dtype
-    inputs = {
-        k: (v.to(device=DEVICE, dtype=DTYPE) if torch.is_tensor(v) else v)
-        for k, v in inputs.items()
-    }
+    # move tensors to device
+    inputs = {k: v.to(DEVICE) if torch.is_tensor(v) else v for k, v in inputs.items()}
+
+    # 🔥 ONLY cast pixel_values to fp16
+    if DEVICE == "cuda" and "pixel_values" in inputs:
+        inputs["pixel_values"] = inputs["pixel_values"].half()
 
     output = model.generate(
         **inputs,
@@ -58,6 +59,7 @@ def ocr_image(image: Image.Image) -> str:
     )
 
     return processor.decode(output[0], skip_special_tokens=True)
+
 
 def ocr_pdf_bytes(pdf_bytes: bytes):
     pdf = pdfium.PdfDocument(pdf_bytes)
