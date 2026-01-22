@@ -1,7 +1,8 @@
 torch
 torchvision
 torchaudio
+transformers==4.46.0
 pypdfium2
 pillow
-runpod
-git+https://github.com/huggingface/transformers
+fastapi
+uvicorn
