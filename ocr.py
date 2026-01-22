@@ -42,7 +42,7 @@ def ocr_image(file=None, url=None) -> str:
             "role": "user",
             "content": [
                 {"type": "image", "image": image},
-                {"type": "text", "text": "Extract all text"},
+                {"type": "text", "text": "Extract all text into json"},
             ],
         }
     ]
