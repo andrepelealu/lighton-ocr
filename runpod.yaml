@@ -1,0 +1,14 @@
+apiVersion: runpod.io/v1
+kind: Endpoint
+metadata:
+  name: lighton-ocr
+spec:
+  container:
+    image: yourdockerhub/lighton-ocr:latest
+    gpu: true
+    gpuType: "NVIDIA_A100_40GB"
+    volumeSize: 50
+  scaling:
+    minWorkers: 0
+    maxWorkers: 3
+    idleTimeout: 60

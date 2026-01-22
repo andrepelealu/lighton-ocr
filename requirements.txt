@@ -1,0 +1,7 @@
+torch
+torchvision
+torchaudio
+pypdfium2
+pillow
+runpod
+git+https://github.com/huggingface/transformers
