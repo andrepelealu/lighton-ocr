@@ -1,16 +1,21 @@
 import torch
 import pypdfium2 as pdfium
 from PIL import Image
-from transformers import LightOnOcrForConditionalGeneration, LightOnOcrProcessor
+
+# ✅ CORRECT import path (THIS fixes your error)
+from transformers.models.lighton_ocr import (
+    LightOnOcrForConditionalGeneration,
+    LightOnOcrProcessor
+)
 
 MODEL_ID = "lightonai/LightOnOCR-2-1B"
 PROMPT = "Extract all text from this document page accurately. Preserve layout."
-MAX_SIDE = 1600
+MAX_SIDE = 1400  # lowered to prevent OOM
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
-print(f"Loading model on {DEVICE}...")
+print(f"[OCR] Loading model on {DEVICE}...")
 model = LightOnOcrForConditionalGeneration.from_pretrained(
     MODEL_ID,
     torch_dtype=DTYPE,
@@ -19,9 +24,9 @@ model = LightOnOcrForConditionalGeneration.from_pretrained(
 
 processor = LightOnOcrProcessor.from_pretrained(MODEL_ID)
 model.eval()
-print("Model loaded")
+print("[OCR] Model loaded")
 
-def resize_image(image: Image.Image):
+def _resize(image: Image.Image) -> Image.Image:
     if max(image.size) > MAX_SIDE:
         ratio = MAX_SIDE / max(image.size)
         image = image.resize(
@@ -32,7 +37,8 @@ def resize_image(image: Image.Image):
 
 @torch.no_grad()
 def ocr_image(image: Image.Image) -> str:
-    image = resize_image(image)
+    image = _resize(image)
+
     inputs = processor(
         images=image,
         text=PROMPT,
@@ -41,9 +47,10 @@ def ocr_image(image: Image.Image) -> str:
 
     output = model.generate(
         **inputs,
-        max_new_tokens=1024,
+        max_new_tokens=768,   # prevent OOM
         do_sample=False
     )
+
     return processor.decode(output[0], skip_special_tokens=True)
 
 def ocr_pdf_bytes(pdf_bytes: bytes):
@@ -51,7 +58,7 @@ def ocr_pdf_bytes(pdf_bytes: bytes):
     results = []
 
     for i, page in enumerate(pdf):
-        image = page.render(scale=1.3).to_pil().convert("RGB")
+        image = page.render(scale=1.2).to_pil().convert("RGB")
         text = ocr_image(image)
         results.append({"page": i + 1, "text": text})
 
