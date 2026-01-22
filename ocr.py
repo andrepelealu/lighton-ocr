@@ -1,7 +1,6 @@
 import os
 os.environ["TORCH_COMPILE"] = "0"
 os.environ["TORCHDYNAMO_DISABLE"] = "1"
-os.environ["TORCH_LOGS"] = ""
 
 import torch
 torch._dynamo.disable()
