@@ -2,7 +2,6 @@ import torch
 import pypdfium2 as pdfium
 from PIL import Image
 
-# ✅ CORRECT import path (THIS fixes your error)
 from transformers.models.lighton_ocr import (
     LightOnOcrForConditionalGeneration,
     LightOnOcrProcessor
@@ -10,12 +9,13 @@ from transformers.models.lighton_ocr import (
 
 MODEL_ID = "lightonai/LightOnOCR-2-1B"
 PROMPT = "Extract all text from this document page accurately. Preserve layout."
-MAX_SIDE = 1400  # lowered to prevent OOM
+MAX_SIDE = 1400
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
-print(f"[OCR] Loading model on {DEVICE}...")
+print(f"[OCR] Loading model on {DEVICE} ({DTYPE})...")
+
 model = LightOnOcrForConditionalGeneration.from_pretrained(
     MODEL_ID,
     torch_dtype=DTYPE,
@@ -43,11 +43,17 @@ def ocr_image(image: Image.Image) -> str:
         images=image,
         text=PROMPT,
         return_tensors="pt"
-    ).to(DEVICE)
+    )
+
+    # 🔥 CRITICAL FIX: match model dtype
+    inputs = {
+        k: (v.to(device=DEVICE, dtype=DTYPE) if torch.is_tensor(v) else v)
+        for k, v in inputs.items()
+    }
 
     output = model.generate(
         **inputs,
-        max_new_tokens=768,   # prevent OOM
+        max_new_tokens=768,
         do_sample=False
     )
 
@@ -58,6 +64,7 @@ def ocr_pdf_bytes(pdf_bytes: bytes):
     results = []
 
     for i, page in enumerate(pdf):
+        print(f"OCR page {i+1}/{len(pdf)}")
         image = page.render(scale=1.2).to_pil().convert("RGB")
         text = ocr_image(image)
         results.append({"page": i + 1, "text": text})
