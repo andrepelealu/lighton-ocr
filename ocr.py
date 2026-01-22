@@ -71,19 +71,20 @@ def ocr_pdf_bytes(pdf_bytes: bytes):
 
     results = []
 
-    page_indices = list(range(len(pdf)))
-    renderer = pdf.render_to(
-        pdfium.BitmapConv.pil_image,
-        page_indices=page_indices,
-        scale=2,  # important for OCR quality
-    )
-
-    for i, image in zip(page_indices, renderer):
+    for i in range(len(pdf)):
+        page = pdf[i]
+        pil_image = page.render_to_pil(
+            scale=2  # IMPORTANT for OCR quality
+        )
         print(f"OCR page {i+1}/{len(pdf)}")
-        text = ocr_pil_image(image)
+        text = ocr_pil_image(pil_image)
+
         results.append({
             "page": i + 1,
             "text": text
         })
+
+    return results
+
 
     return results
