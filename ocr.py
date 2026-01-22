@@ -1,7 +1,7 @@
 from transformers import LightOnOcrForConditionalGeneration, LightOnOcrProcessor
 import torch, os
 
-MODEL_ID = "lightonai/lighton-ocr-v1"
+MODEL_ID = "lightonai/LightOnOCR-2-1B"
 
 # --- torch stability ---
 os.environ["TORCH_COMPILE"] = "0"
