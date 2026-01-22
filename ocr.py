@@ -40,16 +40,16 @@ def ocr_image(image: Image.Image) -> str:
     image = _resize(image)
 
     inputs = processor(
-        images=image,
-        text=PROMPT,
+        images=[image],              # 👈 MUST be list
+        text=[PROMPT],               # 👈 MUST be list
         return_tensors="pt"
     )
 
     # move tensors to device
     inputs = {k: v.to(DEVICE) if torch.is_tensor(v) else v for k, v in inputs.items()}
 
-    # 🔥 ONLY cast pixel_values to fp16
-    if DEVICE == "cuda" and "pixel_values" in inputs:
+    # only cast pixel_values
+    if DEVICE == "cuda":
         inputs["pixel_values"] = inputs["pixel_values"].half()
 
     output = model.generate(
