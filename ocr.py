@@ -8,7 +8,6 @@ from transformers.models.lighton_ocr import (
 )
 
 MODEL_ID = "lightonai/LightOnOCR-2-1B"
-PROMPT = "<image>\nExtract all text from this document page accurately. Preserve layout."
 MAX_SIDE = 1400
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -40,25 +39,26 @@ def ocr_image(image: Image.Image) -> str:
     image = _resize(image)
 
     inputs = processor(
-        images=[image],              # 👈 MUST be list
-        text=[PROMPT],               # 👈 MUST be list
+        images=[image],
+        text=["<image>"],   # 🔥 THIS MUST BE EXACTLY THIS
         return_tensors="pt"
     )
 
-    # move tensors to device
+    # move to device
     inputs = {k: v.to(DEVICE) if torch.is_tensor(v) else v for k, v in inputs.items()}
 
-    # only cast pixel_values
+    # cast only pixel values
     if DEVICE == "cuda":
         inputs["pixel_values"] = inputs["pixel_values"].half()
 
     output = model.generate(
         **inputs,
-        max_new_tokens=768,
+        max_new_tokens=1024,
         do_sample=False
     )
 
     return processor.decode(output[0], skip_special_tokens=True)
+
 
 
 def ocr_pdf_bytes(pdf_bytes: bytes):
