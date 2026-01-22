@@ -8,7 +8,7 @@ from transformers.models.lighton_ocr import (
 )
 
 MODEL_ID = "lightonai/LightOnOCR-2-1B"
-PROMPT = "Extract all text from this document page accurately. Preserve layout."
+PROMPT = "<image>\nExtract all text from this document page accurately. Preserve layout."
 MAX_SIDE = 1400
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
