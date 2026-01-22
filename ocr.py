@@ -3,10 +3,10 @@ from transformers import LightOnOcrForConditionalGeneration, LightOnOcrProcessor
 from PIL import Image
 import requests
 from io import BytesIO
+import pypdfium2 as pdfium
 
 MODEL_ID = "lightonai/LightOnOCR-2-1B"
 
-# device & dtype (EXACTLY like your working code)
 device = (
     "mps" if torch.backends.mps.is_available()
     else "cuda" if torch.cuda.is_available()
@@ -24,25 +24,13 @@ model = LightOnOcrForConditionalGeneration.from_pretrained(
 processor = LightOnOcrProcessor.from_pretrained(MODEL_ID)
 
 
-def load_image(file=None, url=None):
-    if url:
-        r = requests.get(url)
-        r.raise_for_status()
-        return Image.open(BytesIO(r.content)).convert("RGB")
-    else:
-        return Image.open(file).convert("RGB")
-
-
-@torch.inference_mode()
-def ocr_image(file=None, url=None) -> str:
-    image = load_image(file=file, url=url)
-
+def ocr_pil_image(image: Image.Image) -> str:
     conversation = [
         {
             "role": "user",
             "content": [
                 {"type": "image", "image": image},
-                {"type": "text", "text": "Extract all text into json"},
+                {"type": "text", "text": "Extract all text"},
             ],
         }
     ]
@@ -60,7 +48,42 @@ def ocr_image(file=None, url=None) -> str:
         for k, v in inputs.items()
     }
 
-    output_ids = model.generate(**inputs, max_new_tokens=1024)
-    generated_ids = output_ids[0, inputs["input_ids"].shape[1]:]
+    with torch.inference_mode():
+        output_ids = model.generate(**inputs, max_new_tokens=1024)
 
+    generated_ids = output_ids[0, inputs["input_ids"].shape[1]:]
     return processor.decode(generated_ids, skip_special_tokens=True)
+
+
+def ocr_image(file=None, url=None) -> str:
+    if url:
+        r = requests.get(url)
+        r.raise_for_status()
+        image = Image.open(BytesIO(r.content)).convert("RGB")
+    else:
+        image = Image.open(file).convert("RGB")
+
+    return ocr_pil_image(image)
+
+
+def ocr_pdf_bytes(pdf_bytes: bytes):
+    pdf = pdfium.PdfDocument(pdf_bytes)
+
+    results = []
+
+    page_indices = list(range(len(pdf)))
+    renderer = pdf.render_to(
+        pdfium.BitmapConv.pil_image,
+        page_indices=page_indices,
+        scale=2,  # important for OCR quality
+    )
+
+    for i, image in zip(page_indices, renderer):
+        print(f"OCR page {i+1}/{len(pdf)}")
+        text = ocr_pil_image(image)
+        results.append({
+            "page": i + 1,
+            "text": text
+        })
+
+    return results

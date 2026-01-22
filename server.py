@@ -1,6 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
-from ocr import ocr_image
-import tempfile
+from ocr import ocr_image, ocr_pdf_bytes
 
 app = FastAPI(title="LightOn OCR API")
 
@@ -11,10 +10,15 @@ async def ocr_from_image(file: UploadFile = File(None), url: str = None):
         return {"error": "file or url is required"}
 
     if file:
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            tmp.write(await file.read())
-            text = ocr_image(file=tmp.name)
+        text = ocr_image(file.file)
     else:
         text = ocr_image(url=url)
 
     return {"text": text}
+
+
+@app.post("/ocr/pdf")
+async def ocr_from_pdf(file: UploadFile = File(...)):
+    pdf_bytes = await file.read()
+    pages = ocr_pdf_bytes(pdf_bytes)
+    return {"pages": pages}
